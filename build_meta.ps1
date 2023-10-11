@@ -1,0 +1,1 @@
+python scripts/generate_meta_info_pairdata.py --input MCDataset/alpha/32a MCDataset/alpha/16a --meta_info MCDataset/alpha/meta_info/meta_info_DIV2K_sub_pair.txt

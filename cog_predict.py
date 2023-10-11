@@ -12,8 +12,8 @@ import cv2
 import shutil
 import tempfile
 import torch
-from basicsr.archs.rrdbnet_arch import RRDBNet
-from basicsr.archs.srvgg_arch import SRVGGNetCompact
+from edited_scripts.basicsr.archs.rrdbnet_arch import RRDBNet
+from edited_scripts.basicsr.archs.srvgg_arch import SRVGGNetCompact
 
 from realesrgan.utils import RealESRGANer
 
