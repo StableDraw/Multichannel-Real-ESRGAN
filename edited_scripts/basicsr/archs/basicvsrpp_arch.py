@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
+from torchvision.ops import deform_conv2d
 import warnings
 
 from .arch_util import flow_warp
@@ -394,7 +394,7 @@ class SecondOrderDeformableAlignment(ModulatedDeformConvPack):
         # mask
         mask = torch.sigmoid(mask)
 
-        return torchvision.ops.deform_conv2d(x, offset, self.weight, self.bias, self.stride, self.padding,
+        return deform_conv2d(x, offset, self.weight, self.bias, self.stride, self.padding,
                                              self.dilation, mask)
 
 

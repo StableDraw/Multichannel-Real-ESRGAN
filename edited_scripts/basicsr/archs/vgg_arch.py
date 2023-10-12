@@ -5,7 +5,7 @@ from torch import nn as nn
 from ... import torchvision_models_vgg as vgg
 from ..utils.registry import ARCH_REGISTRY
 
-VGG_PRETRAIN_PATH = 'C:\\repos\\Real-ESRGAN\\experiments\\pretrained_models\\new_vgg19-dcbb9e9d.pth'
+VGG_PRETRAIN_PATH = 'C:\\repos\\Real-ESRGAN\\experiments\\pretrained_models\\4ch_vgg19-dcbb9e9d.pth'
 NAMES = {
     'vgg11': [
         'conv1_1', 'relu1_1', 'pool1', 'conv2_1', 'relu2_1', 'pool2', 'conv3_1', 'relu3_1', 'conv3_2', 'relu3_2',
@@ -100,11 +100,11 @@ class VGGFeatureExtractor(nn.Module):
                 max_idx = idx
 
         if os.path.exists(VGG_PRETRAIN_PATH):
-            vgg_net = getattr(vgg, vgg_type)(pretrained=False)
+            vgg_net = getattr(vgg, vgg_type)(weights = None)
             state_dict = torch.load(VGG_PRETRAIN_PATH, map_location=lambda storage, loc: storage)
             vgg_net.load_state_dict(state_dict)
         else:
-            vgg_net = getattr(vgg, vgg_type)(pretrained=True)
+            vgg_net = getattr(vgg, vgg_type)(weights = "VGG19_Weights.IMAGENET1K_V1")
 
         features = vgg_net.features[:max_idx + 1]
 

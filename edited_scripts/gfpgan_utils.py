@@ -1,7 +1,7 @@
 import cv2
 import os
 import torch
-from edited_scripts.basicsr_utils_img_util import img2tensor, tensor2img
+from .basicsr.utils.img_util import img2tensor, tensor2img
 from basicsr.utils.download_util import load_file_from_url
 from facexlib.utils.face_restoration_helper import FaceRestoreHelper
 from torchvision.transforms.functional import normalize
