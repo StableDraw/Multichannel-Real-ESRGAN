@@ -2,7 +2,7 @@
   <img src="assets/realesrgan_logo_multichannel.png" height=120>
 </p>
 
-##This version is fork of the original [**xinntao Real-ESRGAN**](https://github.com/xinntao/Real-ESRGAN) with multi-channel support (including alpha channel support) and some other optimizations and features. Only differences from the original version will be written here. You can read the description and features of the original version on it's page.
+## This version is fork of the original [**xinntao Real-ESRGAN**](https://github.com/xinntao/Real-ESRGAN) with multi-channel support (including alpha channel support) and some other optimizations and features. Only differences from the original version will be written here. You can read the description and features of the original version on it's page.
 
 <div align="center">
 
