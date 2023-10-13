@@ -1,11 +1,25 @@
 import os
 import torch
+import wget
 from collections import OrderedDict
 from torch import nn as nn
 from ... import torchvision_models_vgg as vgg
 from ..utils.registry import ARCH_REGISTRY
 
-VGG_PRETRAIN_PATH = 'C:\\repos\\Real-ESRGAN\\experiments\\pretrained_models\\4ch_vgg19-dcbb9e9d.pth'
+VGG_PRETRAIN_PATH = 'experiments\\pretrained_models\\'
+VGG_MODEL_URL = "https://download.pytorch.org/models/"
+
+VGG_MODEL_NAMES = {
+    'vgg11': 'vgg11-bbd30ac9.pth',
+    'vgg13': 'vgg13-c768596a.pth',
+    'vgg16': 'vgg16-397923af.pth',
+    'vgg19': 'vgg19-dcbb9e9d.pth',
+    'vgg11_bn': 'vgg11_bn-6002323d.pth',
+    'vgg13_bn': 'vgg13_bn-abd245e5.pth',
+    'vgg16_bn': 'vgg16_bn-6c64b313.pth',
+    'vgg19_bn': 'vgg19_bn-c79401a0.pth'
+}
+
 NAMES = {
     'vgg11': [
         'conv1_1', 'relu1_1', 'pool1', 'conv2_1', 'relu2_1', 'pool2', 'conv3_1', 'relu3_1', 'conv3_2', 'relu3_2',
@@ -49,6 +63,33 @@ def insert_bn(names):
             names_bn.append('bn' + position)
     return names_bn
 
+def rebuild_vgg(in_channels, model_root, vgg_name):
+    if not os.path.exists(model_root + vgg_name):
+        wget.download(VGG_MODEL_URL + vgg_name, out = model_root)
+    model = torch.load(model_root + vgg_name, map_location = torch.device('cpu'))
+    first_layer_name = next(iter(model))
+    first_layer = model[first_layer_name]
+    first_layer_shape = list(first_layer.shape)
+    first_layer_shape[1] = in_channels
+    new_layer = torch.empty(first_layer_shape)
+    for i in range(first_layer_shape[0]):
+        s = 0
+        cell = first_layer[i]
+        for j in range(3):
+            s += cell[j]
+        s /= 3
+        if in_channels == 1:
+            new_layer[i][0] = s
+        elif in_channels == 4:
+            for j in range(3):
+                new_layer[i][j] = cell[j]
+            new_layer[i][3] = s
+        else:
+            for j in range(in_channels):
+                new_layer[i][j] = (s + cell[j % 3]) / 2
+    model[first_layer_name] = new_layer
+    torch.save(model, model_root + str(in_channels) + "ch_" + vgg_name)
+    
 
 @ARCH_REGISTRY.register()
 class VGGFeatureExtractor(nn.Module):
@@ -81,9 +122,10 @@ class VGGFeatureExtractor(nn.Module):
                  range_norm=False,
                  requires_grad=False,
                  remove_pooling=False,
-                 pooling_stride=2):
+                 pooling_stride=2,
+                 in_channels=3):
         super(VGGFeatureExtractor, self).__init__()
-
+        global VGG_PRETRAIN_PATH
         self.layer_name_list = layer_name_list
         self.use_input_norm = use_input_norm
         self.range_norm = range_norm
@@ -99,12 +141,22 @@ class VGGFeatureExtractor(nn.Module):
             if idx > max_idx:
                 max_idx = idx
 
+        DEFAULT_VGG_NAME = VGG_MODEL_NAMES[vgg_type]
+
+        if in_channels == 3:
+            VGG_PRETRAIN_PATH += DEFAULT_VGG_NAME
+        else:
+            VGG_PRETRAIN_ROOT_PATH = VGG_PRETRAIN_PATH
+            VGG_PRETRAIN_PATH += str(in_channels) + "ch_" + DEFAULT_VGG_NAME
+            if not os.path.exists(VGG_PRETRAIN_PATH):
+                rebuild_vgg(in_channels, VGG_PRETRAIN_ROOT_PATH, DEFAULT_VGG_NAME)
+
         if os.path.exists(VGG_PRETRAIN_PATH):
-            vgg_net = getattr(vgg, vgg_type)(weights = None)
-            state_dict = torch.load(VGG_PRETRAIN_PATH, map_location=lambda storage, loc: storage)
+            vgg_net = getattr(vgg, vgg_type)(weights = None, in_channels = in_channels)
+            state_dict = torch.load(VGG_PRETRAIN_PATH, map_location = lambda storage, loc: storage)
             vgg_net.load_state_dict(state_dict)
         else:
-            vgg_net = getattr(vgg, vgg_type)(weights = "VGG19_Weights.IMAGENET1K_V1")
+            vgg_net = getattr(vgg, vgg_type)(weights = vgg_type.upper() + "_Weights.IMAGENET1K_V1", in_channels = in_channels)
 
         features = vgg_net.features[:max_idx + 1]
 
@@ -132,10 +184,29 @@ class VGGFeatureExtractor(nn.Module):
                 param.requires_grad = True
 
         if self.use_input_norm:
+            original_mean_tensor = [0.485, 0.456, 0.406]
+            original_std_tensor = [0.229, 0.224, 0.225]
+            awerage_mean_value = 0.449
+            awerage_std_value = 0.226
+            if in_channels == 1:
+                mean_tensor = [awerage_mean_value]
+                std_tensor = [awerage_std_value]
+            elif in_channels == 3:
+                mean_tensor = original_mean_tensor
+                std_tensor = original_std_tensor
+            elif in_channels == 4:
+                mean_tensor = original_mean_tensor + [awerage_mean_value]
+                std_tensor = original_std_tensor + [awerage_std_value]
+            else:
+                mean_tensor = []
+                std_tensor = []
+                for i in range(in_channels):
+                    mean_tensor += [(original_mean_tensor[i % 3] + awerage_mean_value) / 2]
+                    std_tensor += [(original_std_tensor[i % 3] + awerage_std_value) / 2]
             # the mean is for image with range [0, 1]
-            self.register_buffer('mean', torch.Tensor([0.485, 0.456, 0.406, 0.449]).view(1, 4, 1, 1))
+            self.register_buffer('mean', torch.Tensor(mean_tensor).view(1, in_channels, 1, 1))
             # the std is for image with range [0, 1]
-            self.register_buffer('std', torch.Tensor([0.229, 0.224, 0.225, 0.226]).view(1, 4, 1, 1))
+            self.register_buffer('std', torch.Tensor(std_tensor).view(1, in_channels, 1, 1))
 
     def forward(self, x):
         """Forward function.

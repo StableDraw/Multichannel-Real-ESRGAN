@@ -111,7 +111,7 @@ train:
     style_weight: 0
     range_norm: false
     criterion: l1
-    #in_channels: 4
+    in_channels: 4
   # gan loss
   gan_opt:
     type: GANLoss
