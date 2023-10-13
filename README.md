@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/realesrgan_logo.png" height=120>
+  <img src="assets/realesrgan_logo_multichannel.png" height=120>
 </p>
 
-## <div align="center"><b><a href="README.md">English</a> | <a href="README_CN.md">简体中文</a></b></div>
+##This version is fork of the original [**xinntao Real-ESRGAN**](https://github.com/xinntao/Real-ESRGAN) with multi-channel support (including alpha channel support) and some other optimizations and features. Only differences from the original version will be written here. You can read the description and features of the original version on it's page.
 
 <div align="center">
 
