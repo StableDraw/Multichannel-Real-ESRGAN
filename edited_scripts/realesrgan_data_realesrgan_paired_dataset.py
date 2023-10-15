@@ -47,13 +47,14 @@ class RealESRGANPairedDataset(data.Dataset):
         # mean and std for normalizing the input images
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
-        n_ch = opt["n_ch"] if "n_ch" in opt else 3
-        if n_ch == 3:
-            self.flag = "color"
-        if n_ch == 2:
-            self.flag = "grayscale"
+        
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
         else:
-            self.flag = "unchanged"
+            self.flag = 'unchanged'
         
         self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
         self.filename_tmpl = opt['filename_tmpl'] if 'filename_tmpl' in opt else '{}'

@@ -20,6 +20,7 @@ datasets:
     dataroot_gt: datasets/DF2K
     dataroot_lq: datasets/DF2K
     meta_info: datasets/DF2K/meta_info/meta_info_DIV2K_sub_pair.txt
+    in_channels: 4
     io_backend:
       type: disk
 
@@ -40,6 +41,7 @@ datasets:
       type: PairedImageDataset
       dataroot_gt: path_to_gt
       dataroot_lq: path_to_lq
+      in_channels: 4
       io_backend:
         type: disk
 

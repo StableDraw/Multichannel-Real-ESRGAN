@@ -40,6 +40,14 @@ class RealESRGANDataset(data.Dataset):
         self.io_backend_opt = opt['io_backend']
         self.gt_folder = opt['dataroot_gt']
 
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+
         # file client (lmdb io backend)
         if self.io_backend_opt['type'] == 'lmdb':
             self.io_backend_opt['db_paths'] = [self.gt_folder]
@@ -104,7 +112,7 @@ class RealESRGANDataset(data.Dataset):
                 break
             finally:
                 retry -= 1
-        img_gt = imfrombytes(img_bytes, float32=True)
+        img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # -------------------- Do augmentation for training: flip, rotation -------------------- #
         img_gt = augment(img_gt, self.opt['use_hflip'], self.opt['use_rot'])

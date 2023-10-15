@@ -51,6 +51,14 @@ class RealESRGANPairedDataset(data.Dataset):
         self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
         self.filename_tmpl = opt['filename_tmpl'] if 'filename_tmpl' in opt else '{}'
 
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+
         # file client (lmdb io backend)
         if self.io_backend_opt['type'] == 'lmdb':
             self.io_backend_opt['db_paths'] = [self.lq_folder, self.gt_folder]
@@ -83,10 +91,10 @@ class RealESRGANPairedDataset(data.Dataset):
         # image range: [0, 1], float32.
         gt_path = self.paths[index]['gt_path']
         img_bytes = self.file_client.get(gt_path, 'gt')
-        img_gt = imfrombytes(img_bytes, float32=True)
+        img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
         lq_path = self.paths[index]['lq_path']
         img_bytes = self.file_client.get(lq_path, 'lq')
-        img_lq = imfrombytes(img_bytes, float32=True)
+        img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # augmentation for training
         if self.opt['phase'] == 'train':

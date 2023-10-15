@@ -66,6 +66,16 @@ class Vimeo90KDataset(data.Dataset):
             self.io_backend_opt['db_paths'] = [self.lq_root, self.gt_root]
             self.io_backend_opt['client_keys'] = ['lq', 'gt']
 
+        
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+
+
         # indices of input images
         self.neighbor_list = [i + (9 - opt['num_frame']) // 2 for i in range(opt['num_frame'])]
 
@@ -93,7 +103,7 @@ class Vimeo90KDataset(data.Dataset):
         else:
             img_gt_path = self.gt_root / clip / seq / 'im4.png'
         img_bytes = self.file_client.get(img_gt_path, 'gt')
-        img_gt = imfrombytes(img_bytes, float32=True)
+        img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # get the neighboring LQ frames
         img_lqs = []
@@ -103,7 +113,7 @@ class Vimeo90KDataset(data.Dataset):
             else:
                 img_lq_path = self.lq_root / clip / seq / f'im{neighbor}.png'
             img_bytes = self.file_client.get(img_lq_path, 'lq')
-            img_lq = imfrombytes(img_bytes, float32=True)
+            img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
             img_lqs.append(img_lq)
 
         # randomly crop
@@ -160,10 +170,10 @@ class Vimeo90KRecurrentDataset(Vimeo90KDataset):
                 img_gt_path = self.gt_root / clip / seq / f'im{neighbor}.png'
             # LQ
             img_bytes = self.file_client.get(img_lq_path, 'lq')
-            img_lq = imfrombytes(img_bytes, float32=True)
+            img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
             # GT
             img_bytes = self.file_client.get(img_gt_path, 'gt')
-            img_gt = imfrombytes(img_bytes, float32=True)
+            img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
             img_lqs.append(img_lq)
             img_gts.append(img_gt)

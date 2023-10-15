@@ -33,7 +33,15 @@ class FFHQDataset(data.Dataset):
         self.gt_folder = opt['dataroot_gt']
         self.mean = opt['mean']
         self.std = opt['std']
-
+        
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+        
         if self.io_backend_opt['type'] == 'lmdb':
             self.io_backend_opt['db_paths'] = self.gt_folder
             if not self.gt_folder.endswith('.lmdb'):
@@ -66,7 +74,7 @@ class FFHQDataset(data.Dataset):
                 break
             finally:
                 retry -= 1
-        img_gt = imfrombytes(img_bytes, float32=True)
+        img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # random horizontal flip
         img_gt = augment(img_gt, hflip=self.opt['use_hflip'], rotation=False)

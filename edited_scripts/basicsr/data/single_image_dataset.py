@@ -34,6 +34,14 @@ class SingleImageDataset(data.Dataset):
         self.std = opt['std'] if 'std' in opt else None
         self.lq_folder = opt['dataroot_lq']
 
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+
         if self.io_backend_opt['type'] == 'lmdb':
             self.io_backend_opt['db_paths'] = [self.lq_folder]
             self.io_backend_opt['client_keys'] = ['lq']
@@ -51,7 +59,7 @@ class SingleImageDataset(data.Dataset):
         # load lq image
         lq_path = self.paths[index]
         img_bytes = self.file_client.get(lq_path, 'lq')
-        img_lq = imfrombytes(img_bytes, float32=True)
+        img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # color space transform
         if 'color' in self.opt and self.opt['color'] == 'y':

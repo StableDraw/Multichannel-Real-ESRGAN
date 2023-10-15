@@ -45,6 +45,14 @@ class PairedImageDataset(data.Dataset):
         self.io_backend_opt = opt['io_backend']
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+        
 
         self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
         if 'filename_tmpl' in opt:
@@ -72,10 +80,10 @@ class PairedImageDataset(data.Dataset):
         # image range: [0, 1], float32.
         gt_path = self.paths[index]['gt_path']
         img_bytes = self.file_client.get(gt_path, 'gt')
-        img_gt = imfrombytes(img_bytes, float32=True)
+        img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
         lq_path = self.paths[index]['lq_path']
         img_bytes = self.file_client.get(lq_path, 'lq')
-        img_lq = imfrombytes(img_bytes, float32=True)
+        img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # augmentation for training
         if self.opt['phase'] == 'train':

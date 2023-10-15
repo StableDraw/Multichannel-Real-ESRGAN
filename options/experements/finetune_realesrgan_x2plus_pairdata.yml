@@ -17,9 +17,10 @@ datasets:
   train:
     name: DIV2K
     type: RealESRGANPairedDataset
-    dataroot_gt: datasets/MCDataset/allofall
-    dataroot_lq: datasets/MCDataset/allofall
-    meta_info: datasets/MCDataset/allofall/meta_info/meta_info_DIV2K_sub_pair.txt
+    dataroot_gt: C:/repos/MCDataset/alpha
+    dataroot_lq: C:/repos/MCDataset/alpha
+    meta_info: C:/repos/MCDataset/alpha/meta_info/meta_info_DIV2K_sub_pair_alpha_uncompatible_train.txt
+    in_channels: 4
     io_backend:
       type: disk
 
@@ -40,23 +41,30 @@ datasets:
   #   type: PairedImageDataset
   #   dataroot_gt: path_to_gt
   #   dataroot_lq: path_to_lq
+  #   in_channels: 4
   #   io_backend:
   #     type: disk
 
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 3
-  num_out_ch: 3
+  num_in_ch: 4
+  num_out_ch: 4
   num_feat: 64
   num_block: 23
   num_grow_ch: 32
   scale: 2
 
+network_d:
+  type: UNetDiscriminatorSN
+  num_in_ch: 4
+  num_feat: 64
+  skip_connection: True
+
 # path
 path:
   # use the pre-trained Real-ESRNet model
-  pretrain_network_g: experiments/pretrained_models/RealESRGAN_x2plus.pth
+  pretrain_network_g: experiments/pretrained_models/net_g_105000.pth
   param_key_g: params_ema
   strict_load_g: true
   resume_state: ~
@@ -65,6 +73,11 @@ path:
 train:
   ema_decay: 0.999
   optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+  optim_d:
     type: Adam
     lr: !!float 1e-4
     weight_decay: 0

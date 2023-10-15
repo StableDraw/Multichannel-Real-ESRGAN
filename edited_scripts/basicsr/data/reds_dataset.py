@@ -59,6 +59,14 @@ class REDSDataset(data.Dataset):
         self.num_frame = opt['num_frame']
         self.num_half_frames = opt['num_frame'] // 2
 
+        in_channels = opt['in_channels'] if 'in_channels' in opt else 3
+        if in_channels == 1:
+            self.flag = 'grayscale'
+        elif in_channels == 3:
+            self.flag = 'color'
+        else:
+            self.flag = 'unchanged'
+
         self.keys = []
         with open(opt['meta_info_file'], 'r') as fin:
             for line in fin:
@@ -131,7 +139,7 @@ class REDSDataset(data.Dataset):
         else:
             img_gt_path = self.gt_root / clip_name / f'{frame_name}.png'
         img_bytes = self.file_client.get(img_gt_path, 'gt')
-        img_gt = imfrombytes(img_bytes, float32=True)
+        img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
 
         # get the neighboring LQ frames
         img_lqs = []
@@ -141,7 +149,7 @@ class REDSDataset(data.Dataset):
             else:
                 img_lq_path = self.lq_root / clip_name / f'{neighbor:08d}.png'
             img_bytes = self.file_client.get(img_lq_path, 'lq')
-            img_lq = imfrombytes(img_bytes, float32=True)
+            img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
             img_lqs.append(img_lq)
 
         # get flows
@@ -332,12 +340,12 @@ class REDSRecurrentDataset(data.Dataset):
 
             # get LQ
             img_bytes = self.file_client.get(img_lq_path, 'lq')
-            img_lq = imfrombytes(img_bytes, float32=True)
+            img_lq = imfrombytes(img_bytes, flag=self.flag, float32=True)
             img_lqs.append(img_lq)
 
             # get GT
             img_bytes = self.file_client.get(img_gt_path, 'gt')
-            img_gt = imfrombytes(img_bytes, float32=True)
+            img_gt = imfrombytes(img_bytes, flag=self.flag, float32=True)
             img_gts.append(img_gt)
 
         # randomly crop
