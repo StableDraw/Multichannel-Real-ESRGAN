@@ -5,7 +5,7 @@ import os
 import queue
 import threading
 import torch
-from basicsr.utils.download_util import load_file_from_url
+from edited_scripts.basicsr.utils.download_util import load_file_from_url
 from torch.nn import functional as F
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,17 +26,7 @@ class RealESRGANer():
         half (float): Whether to use half precision during inference. Default: False.
     """
 
-    def __init__(self,
-                 scale,
-                 model_path,
-                 dni_weight=None,
-                 model=None,
-                 tile=0,
-                 tile_pad=10,
-                 pre_pad=10,
-                 half=False,
-                 device=None,
-                 gpu_id=None):
+    def __init__(self, scale, model_path, dni_weight = None, model = None, tile = 0, tile_pad = 10, pre_pad = 10, half = False, device = None, gpu_id = None):
         self.scale = scale
         self.tile_size = tile
         self.tile_pad = tile_pad
@@ -46,8 +36,7 @@ class RealESRGANer():
 
         # initialize model
         if gpu_id:
-            self.device = torch.device(
-                f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu') if device is None else device
+            self.device = torch.device(f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu') if device is None else device
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
 
@@ -58,9 +47,8 @@ class RealESRGANer():
         else:
             # if the model_path starts with https, it will first download models to the folder: weights
             if model_path.startswith('https://'):
-                model_path = load_file_from_url(
-                    url=model_path, model_dir=os.path.join(ROOT_DIR, 'weights'), progress=True, file_name=None)
-            loadnet = torch.load(model_path, map_location=torch.device('cpu'))
+                model_path = load_file_from_url(url = model_path, model_dir = os.path.join(ROOT_DIR, 'weights'), progress = True, file_name = None)
+            loadnet = torch.load(model_path, map_location = torch.device('cpu'))
 
         # prefer to use params_ema
         if 'params_ema' in loadnet:
@@ -79,8 +67,8 @@ class RealESRGANer():
 
         ``Paper: Deep Network Interpolation for Continuous Imagery Effect Transition``
         """
-        net_a = torch.load(net_a, map_location=torch.device(loc))
-        net_b = torch.load(net_b, map_location=torch.device(loc))
+        net_a = torch.load(net_a, map_location = torch.device(loc))
+        net_b = torch.load(net_b, map_location = torch.device(loc))
         for k, v_a in net_a[key].items():
             net_a[key][k] = dni_weight[0] * v_a + dni_weight[1] * net_b[key][k]
         return net_a
@@ -175,9 +163,7 @@ class RealESRGANer():
                 output_end_y_tile = output_start_y_tile + input_tile_height * self.scale
 
                 # put tile into output image
-                self.output[:, :, output_start_y:output_end_y,
-                            output_start_x:output_end_x] = output_tile[:, :, output_start_y_tile:output_end_y_tile,
-                                                                       output_start_x_tile:output_end_x_tile]
+                self.output[:, :, output_start_y:output_end_y, output_start_x:output_end_x] = output_tile[:, :, output_start_y_tile:output_end_y_tile, output_start_x_tile:output_end_x_tile]
 
     def post_process(self):
         # remove extra pad
@@ -191,7 +177,7 @@ class RealESRGANer():
         return self.output
 
     @torch.no_grad()
-    def enhance(self, img, outscale=None, alpha_upsampler='realesrgan'):
+    def enhance(self, img, outscale = None, num_out_ch = 3, alpha_upsampler = 'realesrgan'):
         h_input, w_input = img.shape[0:2]
         # img: numpy
         img = img.astype(np.float32)
@@ -206,14 +192,14 @@ class RealESRGANer():
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         elif img.shape[2] == 4:  # RGBA image with alpha channel
             img_mode = 'RGBA'
-            '''
-            alpha = img[:, :, 3]
-            img = img[:, :, 0:3]
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            if alpha_upsampler == 'realesrgan':
-                alpha = cv2.cvtColor(alpha, cv2.COLOR_GRAY2RGB)
-            '''
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+            if num_out_ch != 3:
+                img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+            else:
+                alpha = img[:, :, 3]
+                img = img[:, :, 0:3]
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                if alpha_upsampler == 'realesrgan':
+                    alpha = cv2.cvtColor(alpha, cv2.COLOR_GRAY2RGB)
         else:
             img_mode = 'RGB'
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -226,14 +212,16 @@ class RealESRGANer():
             self.process()
         output_img = self.post_process()
         output_img = output_img.data.squeeze().float().cpu().clamp_(0, 1).numpy()
-        output_img = output_img[[2, 1, 0, 3], :, :]
+        img_struct_list = []
+        for i in range(3, num_out_ch):
+            img_struct_list.append(i)
+        output_img = output_img[[2, 1, 0] + img_struct_list, :, :]
         output_img = np.transpose(output_img, (1, 2, 0))
         if img_mode == 'L':
             output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2GRAY)
 
         # ------------------- process the alpha channel if necessary ------------------- #
-        '''
-        if img_mode == 'RGBA':
+        if img_mode == 'RGBA' and num_out_ch == 3:
             if alpha_upsampler == 'realesrgan':
                 self.pre_process(alpha)
                 if self.tile_size > 0:
@@ -251,7 +239,6 @@ class RealESRGANer():
             # merge the alpha channel
             output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2BGRA)
             output_img[:, :, 3] = output_alpha
-            '''
 
         # ------------------------------ return ------------------------------ #
         if max_range == 65535:  # 16-bit image
@@ -260,11 +247,7 @@ class RealESRGANer():
             output = (output_img * 255.0).round().astype(np.uint8)
 
         if outscale is not None and outscale != float(self.scale):
-            output = cv2.resize(
-                output, (
-                    int(w_input * outscale),
-                    int(h_input * outscale),
-                ), interpolation=cv2.INTER_LANCZOS4)
+            output = cv2.resize(output, (int(w_input * outscale), int(h_input * outscale)), interpolation = cv2.INTER_LANCZOS4)
 
         return output, img_mode
 
