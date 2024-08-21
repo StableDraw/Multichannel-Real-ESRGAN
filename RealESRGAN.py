@@ -1,12 +1,20 @@
 import cv2
 import io
 import os
+from os.path import realpath, join
+import sys
 import numpy as np
 import torch
 from PIL import Image
 from pytorch_lightning import seed_everything
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from basicsr.utils.download_util import load_file_from_url
+
+file_path = realpath(__file__)
+file_path = file_path[:file_path.rfind("\\") + 1]
+sys.path.insert(1, join(file_path, 'realesrgan'))
+sys.path.insert(1, file_path)
+
 from realesrgan.utils import RealESRGANer
 from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 from gfpgan.utils import GFPGANer
